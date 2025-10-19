@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import timedelta
 from collections import defaultdict
 
-from constants import BLOCK_HOURS, BLOCK_SLOTS, SLOTS_PER_DAY
+from constants import BLOCK_HOURS, BLOCK_SLOTS, SLOTS_PER_DAY, SLOTS_PER_HOUR
 from constants import RA_WEEK_MAX, RA_PP_MAX, NONCA_WEEK_MAX, NONCA_PP_MAX
 from constants import ALL_WEEK_MIN, ALL_PP_MIN, DAILY_SOFT_MAX, DAILY_HARD_MAX
 
@@ -30,9 +30,9 @@ class Schedule:
         mid = (pp_min + pp_max) / 2
         return round(mid / 2) * 2
 
-    def slot_to_day_week_pp(self, slot1_based, start_date):
+    def slot_to_day_week_pp(self, slot1_based, start_date, slots_per_day):
         zero = slot1_based - 1
-        day_index = zero // SLOTS_PER_DAY
+        day_index = zero // slots_per_day
         week_index = day_index // 7
         pay_period_index = day_index // 14
         day_date = start_date + timedelta(days=day_index)
@@ -88,7 +88,20 @@ class Schedule:
 
         return (w_need * 0.6) + (p_need * 0.3) + diversity_bonus + pr_nudge - (day_penalty * 1.0)
 
-    def build_schedule(self, availability_csv_path, employees, schedule_start_date):
+    def slot_to_time(self, slot1_based, slots_per_day, start_time_hour):
+        zero = slot1_based - 1
+        slot_in_day = zero % slots_per_day
+        hours_offset = slot_in_day / SLOTS_PER_HOUR
+        hour = start_time_hour + hours_offset
+        
+        if hour >= 24: hour -= 24
+        
+        if hour == 0: return "12AM"
+        elif hour < 12: return f"{int(hour)}AM"
+        elif hour == 12: return "12PM"
+        else: return f"{int(hour - 12)}PM"
+
+    def build_schedule(self, availability_csv_path, employees, schedule_start_date, slots_per_day, start_time_hour):
         df = pd.read_csv(availability_csv_path, index_col=0)
         valid_names = {e.name for e in employees}
         df = df[[c for c in df.columns if c in valid_names]].copy()
@@ -106,8 +119,11 @@ class Schedule:
         emp_by_name = {e.name: e for e in employees}
 
         for start_slot in start_slots:
-            _, week_idx, pp_idx, day_date = self.slot_to_day_week_pp(start_slot, schedule_start_date)
+            _, week_idx, pp_idx, day_date = self.slot_to_day_week_pp(start_slot, schedule_start_date, slots_per_day)
             day_key = day_date.isoformat()
+
+            start_time_str = self.slot_to_time(start_slot, slots_per_day, start_time_hour)
+            end_time_str = self.slot_to_time(start_slot + BLOCK_SLOTS, slots_per_day, start_time_hour)
 
             available = []
             for name in df.columns:
@@ -119,8 +135,8 @@ class Schedule:
                     "week": week_idx + 1,
                     "pay_period": pp_idx + 1,
                     "day": day_key,
-                    "block_start_slot": start_slot,
-                    "block_end_slot": start_slot + BLOCK_SLOTS - 1,
+                    "start_time": start_time_str,
+                    "end_time": end_time_str,
                     "employee": ""
                 })
                 continue
@@ -163,8 +179,8 @@ class Schedule:
                     "week": week_idx + 1,
                     "pay_period": pp_idx + 1,
                     "day": day_key,
-                    "block_start_slot": start_slot,
-                    "block_end_slot": start_slot + BLOCK_SLOTS - 1,
+                    "start_time": start_time_str,
+                    "end_time": end_time_str,
                     "employee": ""
                 })
                 continue
@@ -190,8 +206,8 @@ class Schedule:
                 "week": week_idx + 1,
                 "pay_period": pp_idx + 1,
                 "day": day_key,
-                "block_start_slot": start_slot,
-                "block_end_slot": start_slot + BLOCK_SLOTS - 1,
+                "start_time": start_time_str,
+                "end_time": end_time_str,
                 "employee": chosen
             })
 

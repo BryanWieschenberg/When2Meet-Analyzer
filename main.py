@@ -37,8 +37,9 @@ def calc_timeslots(start_date, end_date, start_time, end_time):
     hours_per_day = (t2 - t1).seconds // 3600
     day_span = (d2 - d1).days + 1
     total_hours = hours_per_day * day_span * SLOTS_PER_HOUR
+    actual_slots_per_day = hours_per_day * SLOTS_PER_HOUR
 
-    return total_hours
+    return total_hours, actual_slots_per_day
 
 if __name__ == "__main__":
     if len(sys.argv) < 6:
@@ -52,7 +53,7 @@ if __name__ == "__main__":
         arg_str = arg_str.strip("[]")
         exceptions = [x.strip() for x in arg_str.split(",") if x.strip()]
 
-    timeslots = calc_timeslots(start_date, end_date, start_time, end_time)
+    timeslots, actual_slots_per_day = calc_timeslots(start_date, end_date, start_time, end_time)
 
     if "https://when2meet.com/?/" not in url:
         url = f"https://when2meet.com/?{url}"
@@ -104,5 +105,15 @@ if __name__ == "__main__":
                 name, pr = map(str.strip, line.split(",", 1))
                 next(e for e in employees if e.name == name).priority = pr
 
+    t1 = parse_time(start_time)
+    start_hour = t1.hour
+
     schedule = Schedule()
-    schedule_df = schedule.build_schedule("availability.csv", employees, schedule_start_date=date(2025, 9, 20))
+        
+    schedule.build_schedule(
+        "availability.csv",
+        employees,
+        date(2025, 9, 20),
+        actual_slots_per_day,
+        start_hour
+    )
