@@ -1,9 +1,13 @@
+from collections import defaultdict
 import sys
 import requests
 import pandas as pd
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from dataclasses import dataclass, field
+
+from constants import SLOTS_PER_HOUR, SLOTS_PER_DAY, BLOCK_HOURS
+from schedule import Schedule
 
 @dataclass
 class Employee:
@@ -32,7 +36,7 @@ def calc_timeslots(start_date, end_date, start_time, end_time):
 
     hours_per_day = (t2 - t1).seconds // 3600
     day_span = (d2 - d1).days + 1
-    total_hours = hours_per_day * day_span * 4
+    total_hours = hours_per_day * day_span * SLOTS_PER_HOUR
 
     return total_hours
 
@@ -65,10 +69,7 @@ if __name__ == "__main__":
         person = int(person)
         slot_map.setdefault(slot, set()).add(person)
 
-    if slot_map:
-        all_slots = range(min(slot_map.keys()), max(slot_map.keys()) + 1)
-    else:
-        all_slots = range(timeslots)
+    all_slots = range(1, timeslots + 1)
 
     data = {}
     for pid, name in people_dict.items():
@@ -97,10 +98,11 @@ if __name__ == "__main__":
             if line.startswith("/"):
                 section = line[1:].upper()
                 continue
-            if section in ["RA", "CA"]:
+            if section in "RA":
                 next(e for e in employees if e.name == line).is_ca = True
             elif section == "PRIORITY":
                 name, pr = map(str.strip, line.split(",", 1))
                 next(e for e in employees if e.name == name).priority = pr
 
-    
+    schedule = Schedule()
+    schedule_df = schedule.build_schedule("availability.csv", employees, schedule_start_date=date(2025, 9, 20))
