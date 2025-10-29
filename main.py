@@ -70,15 +70,14 @@ if __name__ == "__main__":
         person = int(person)
         slot_map.setdefault(slot, set()).add(person)
 
-    all_slots = range(1, timeslots + 1)
+    all_slots = range(timeslots)
 
     data = {}
     for pid, name in people_dict.items():
         if name in exceptions: continue
         data[name] = [1 if pid in slot_map.get(slot, []) else 0 for slot in all_slots]
 
-    df = pd.DataFrame(data, index=[i + 1 for i in all_slots])
-    df = df.reindex(range(1, timeslots + 1), fill_value=0)
+    df = pd.DataFrame(data, index=[i+1 for i in all_slots])
 
     df.to_csv("availability.csv")
 
@@ -113,7 +112,7 @@ if __name__ == "__main__":
     schedule.build_schedule(
         "availability.csv",
         employees,
-        date(2025, 9, 20),
+        datetime.strptime(start_date, "%m/%d").replace(year=datetime.now().year).date(),
         actual_slots_per_day,
         start_hour
     )
