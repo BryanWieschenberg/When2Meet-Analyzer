@@ -1,0 +1,31 @@
+{
+  "constraints": {
+    "ra": {
+      "week_max": 9,
+      "pp_max": 18
+    },
+    "non_ra": {
+      "week_max": 15,
+      "pp_max": 30
+    },
+    "all": {
+      "week_min": 3,
+      "pp_min": 6
+    },
+    "daily_soft_max": 4,
+    "daily_hard_max": 6,
+    "slots_per_hour": 4,
+    "block_hours_min": 2,
+    "block_hours_max": 4,
+    "employees_per_slot": 1,
+    "weights": {
+      "weekly_need": 2.0,
+      "pp_need": 1.0,
+      "diversity": 0.5,
+      "priority_h": 1.0,
+      "priority_l": -1.0,
+      "day_penalty": 5.0
+    }
+  },
+  "employees": []
+}
